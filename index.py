@@ -32,7 +32,7 @@ def send():
     result = []
     if request.method == 'POST':
         files = request.files.getlist('file')
-        print(files)
+        # print(files)
         if files is None or len(files) <= 0:
             obj = {}
             obj['name'] = None
@@ -47,38 +47,7 @@ def send():
     auth['password'] = 'Nguyen080!'
     # auth['password'] = './keys/id_rsa_sftp'
 
-    outpath = None
-    # outfile = None
-    updir =  os.getcwd() + '/upload/'
-    try:
-        dt = datetime.datetime.now()
-        dir = dt.strftime('%Y%m%d%H%M%S.%f')[:-3]
-        outpath = updir + dir
-        if os.path.isdir(outpath) == False:
-            os.mkdir(outpath)
-
-        for file in files:
-            if file is None:
-                continue
-
-            filename = file.filename
-            # outfile = outpath + '/' + filename
-            file.save(outpath + '/' + filename)
-            auth['filename'] =  filename
-            auth['local'] =  outpath
-            auth['remove'] = '/home/' + auth['username']
-            # auth['remove'] = '/home/' + auth['username'] + '/' + dir
-
-            result.append(transport(auth))
-    except Exception as e:
-        obj = {}
-        obj['name'] = 'ファイル転送エラー発生しました。'
-        obj['msg'] = str(e)
-        result.append(obj)
-    # finally:
-        # if outpath is not None and os.path.isdir(outpath):
-        #     shutil.rmtree(outpath)
-
+    result = transport(auth, files)
     return jsonify(result), 200
 
 if __name__ == "__main__":

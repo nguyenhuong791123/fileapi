@@ -3,31 +3,51 @@ import os
 import paramiko
 # paramiko.util.log_to_file('/tmp/paramiko.log')
 
-def transport(file):
+def transport(auth, files):
     print('Send File Start !!!')
-    transport = paramiko.Transport((file['host'], int(file['port'])))
-    transport.connect(username = file['username'], password = file['password'])
+    transport = paramiko.Transport((auth['host'], int(auth['port'])))
+    transport.connect(username = auth['username'], password = auth['password'])
     sftp = paramiko.SFTPClient.from_transport(transport)
 
-    obj = {}
-    obj['name'] = file['local']
-    try:
-        if os.path.isfile('/home/coder/project/fileapi/img.png'):
-            print(os.getcwd())
-            print(file['local'])
-            print(file['remove'])
-            sftp.put('img.png', '/' + file['filename'])
-            # sftp.put(file['local'], file['remove'])
-            obj['msg'] =  file['host'] + 'への送信完了。'
+    result = []
+    dt = datetime.datetime.now()
+    dir = dt.strftime('%Y%m%d%H%M%S.%f')[:-3]
+    outpath = updir + dir
+    if os.path.isdir(outpath) == False:
+        os.mkdir(outpath)
+
+    for file in files:
+        if file is None:
+            continue
+
+        filename = file.filename
+        local = outpath + '/' + filename
+        file.save(outpath + '/' + filename)
+        remote = '/home/' + auth['username'] + '/' + dir
+
+        obj = {}
+        obj['name'] = local
+        if mkdir_remote(sftp, remote):
+            try:
+                if os.path.isfile(local):
+                    print(os.getcwd())
+                    print(file['local'])
+                    print(file['remove'])
+                    sftp.put(local, filename)
+                    obj['msg'] =  local + 'へ' + remote + '/' + filename + 'の送信完了。'
+                else:
+                    raise IOError('Could not find localFile %s !!' % local)
+            except IOError as err:
+                obj['msg'] = str(err)
+            finally:
+                if sftp is not None:
+                    sftp.close()
+                if transport is not None:
+                    transport.close()
         else:
-            raise IOError('Could not find localFile %s !!' % localFile)
-    except IOError as err:
-        obj['msg'] = str(err)
-    finally:
-        if sftp is not None:
-            sftp.close()
-        if transport is not None:
-            transport.close()
+            obj['msg'] = 'Can not create dir to remote !!!'
+        
+        result.append(obj)
 
     # client = None
     # sftp_connection = None
@@ -53,10 +73,9 @@ def transport(file):
     #     if sftp_connection:
     #         sftp_connection.close()
 
-    print(obj)
-    return obj
+    return result
 
-def mkdir_p(sftp, remote_directory):
+def mkdir_remote(sftp, remote_directory):
     """Change to this directory, recursively making new folders if needed.
     Returns True if any folders were created."""
     if remote_directory == '/':
