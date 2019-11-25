@@ -5,7 +5,7 @@ import paramiko
 
 def transport(file):
     print('Send File Start !!!')
-    transport = paramiko.Transport((file['host'], file['port']))
+    transport = paramiko.Transport((file['host'], int(file['port'])))
     transport.connect(username = file['username'], password = file['password'])
     sftp = paramiko.SFTPClient.from_transport(transport)
 
@@ -16,7 +16,7 @@ def transport(file):
             print(os.getcwd())
             print(file['local'])
             print(file['remove'])
-            sftp.put('/tmp/img.png', file['remove'])
+            sftp.put('img.png', '/' + file['filename'])
             # sftp.put(file['local'], file['remove'])
             obj['msg'] =  file['host'] + 'への送信完了。'
         else:
@@ -34,7 +34,7 @@ def transport(file):
     # try:
     #     client = paramiko.SSHClient()
     #     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    #     client.connect(file['host'], port=file['port'], username=file['username'], password=file['password'])
+    #     client.connect(file['host'], int(file['port']), file['username'], file['password'])
     #     sftp_connection = client.open_sftp()
     #     # ホームディレクトリのファイル一覧をprint
     #     files = sftp_connection.listdir()
@@ -43,7 +43,8 @@ def transport(file):
     #     # ファイルを取得
     #     # sftp_connection.get('/path/to/remotefile', '/path/to/local')
     #     # ファイルを転送
-    #     sftp_connection.put(file['local'], file['remove'])
+    #     sftp.put('img.png', '/home/sftp01/' + file['filename'])
+    #     # sftp_connection.put(file['local'], file['remove'])
     # except IOError as err:
     #     obj['msg'] = str(err)
     # finally:
@@ -54,3 +55,22 @@ def transport(file):
 
     print(obj)
     return obj
+
+def mkdir_p(sftp, remote_directory):
+    """Change to this directory, recursively making new folders if needed.
+    Returns True if any folders were created."""
+    if remote_directory == '/':
+        # absolute path so change directory to root
+        sftp.chdir('/')
+        return
+    if remote_directory == '':
+        # top-level relative directory must exist
+        return
+    try:
+        sftp.chdir(remote_directory) # sub-directory exists
+    except IOError:
+        dirname, basename = os.path.split(remote_directory.rstrip('/'))
+        mkdir_p(sftp, dirname) # make parent directories
+        sftp.mkdir(basename) # sub-directory missing, so created it
+        sftp.chdir(basename)
+        return True

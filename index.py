@@ -41,13 +41,14 @@ def send():
             return jsonify(result), 200
 
     auth = {}
-    auth['host'] = 'sc-sftp-01'
-    auth['port'] = 22
-    auth['username'] = 'sftp01'
-    auth['password'] = 'sftp01'
+    auth['host'] = '192.168.10.126'
+    auth['port'] = 2222
+    auth['username'] = 'huongnv'
+    auth['password'] = 'Nguyen080!'
+    # auth['password'] = './keys/id_rsa_sftp'
 
     outpath = None
-    outfile = None
+    # outfile = None
     updir =  os.getcwd() + '/upload/'
     try:
         dt = datetime.datetime.now()
@@ -61,10 +62,12 @@ def send():
                 continue
 
             filename = file.filename
-            outfile = outpath + '/' + filename
-            file.save(outfile)
-            auth['local'] =  outfile
-            auth['remove'] = '/home/' + auth['username'] + '/' + dir + '/' + filename
+            # outfile = outpath + '/' + filename
+            file.save(outpath + '/' + filename)
+            auth['filename'] =  filename
+            auth['local'] =  outpath
+            auth['remove'] = '/home/' + auth['username']
+            # auth['remove'] = '/home/' + auth['username'] + '/' + dir
 
             result.append(transport(auth))
     except Exception as e:
