@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+import datetime
 import paramiko
 # paramiko.util.log_to_file('/tmp/paramiko.log')
 
@@ -12,6 +13,7 @@ def transport(auth, files):
     result = []
     dt = datetime.datetime.now()
     dir = dt.strftime('%Y%m%d%H%M%S.%f')[:-3]
+    updir = 'upload/'
     outpath = updir + dir
     if os.path.isdir(outpath) == False:
         os.mkdir(outpath)
@@ -89,7 +91,7 @@ def mkdir_remote(sftp, remote_directory):
         sftp.chdir(remote_directory) # sub-directory exists
     except IOError:
         dirname, basename = os.path.split(remote_directory.rstrip('/'))
-        mkdir_p(sftp, dirname) # make parent directories
+        mkdir_remote(sftp, dirname) # make parent directories
         sftp.mkdir(basename) # sub-directory missing, so created it
         sftp.chdir(basename)
         return True

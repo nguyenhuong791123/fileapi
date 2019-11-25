@@ -41,8 +41,8 @@ def send():
             return jsonify(result), 200
 
     auth = {}
-    auth['host'] = '192.168.10.126'
-    auth['port'] = 2222
+    auth['host'] = 'sc-sftp-01'
+    auth['port'] = 22
     auth['username'] = 'huongnv'
     auth['password'] = 'Nguyen080!'
     # auth['password'] = './keys/id_rsa_sftp'
