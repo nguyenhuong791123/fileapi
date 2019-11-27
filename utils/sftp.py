@@ -3,6 +3,8 @@ import os
 import shutil
 import datetime
 import base64
+import zipfile
+import pyminizip
 import paramiko
 # paramiko.util.log_to_file('/tmp/paramiko.log')
 
@@ -24,13 +26,23 @@ def transport_sftp(auth, files):
         if file is None:
             continue
 
-        filename = file.filename
-        local = outpath + '/' + filename
-        file.save(outpath + '/' + filename)
+        filename = None
+        local = None
+        if auth['flag'] == 'json':
+            filename = file['filename']
+            local = outpath + '/' + filename
+            convert_b64_string_to_file(file['data'], local)
+        else:
+            filename = file.filename
+            local = outpath + '/' + filename
+            file.save(local)
+
+        if filename is None or local is None:
+            continue
         remote = '/home/' + auth['username'] + '/' + dir
 
         obj = {}
-        obj['local'] = local
+        # obj['local'] = local
         if mkdir_remote(sftp, remote):
             try:
                 # sftp.chmod(remote, mode=777)
@@ -48,15 +60,15 @@ def transport_sftp(auth, files):
                     transport.close()
                     obj['msg'] =  '「' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '」転送完了。'
                     print('Transport File End !!!' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-                if outpath is not None and os.path.isdir(outpath):
-                    shutil.rmtree(outpath)
         else:
             obj['msg'] = 'Can not create dir to remote !!!'
         
         result.append(obj)
+
+    delete_dir(outpath)
     return result
 
-def download_sftp(auth, file):
+def download_sftp(auth, files):
     print('Download File Start !!!' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     transport = paramiko.Transport((auth['host'], int(auth['port'])))
     transport.connect(username = auth['username'], password = auth['password'])
@@ -69,26 +81,70 @@ def download_sftp(auth, file):
     if os.path.isdir(outpath) == False:
         os.mkdir(outpath)
 
-    filename = file['filename']
-    local = outpath + '/' + filename
-    remote = file['path'] + '/' + filename
-    obj = {}
-    obj['remote'] = remote
-    try:
-        sftp.get(remote, local)
-        obj['path'] = outpath
-        obj['filename'] = filename
-        obj['msg'] =  '「' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '」ダウンロード完了。'
-    except IOError as err:
-        obj['msg'] = str(err)
-    finally:
-        if sftp is not None:
-            sftp.close()
-        if transport is not None:
-            transport.close()
-            print('Download File End !!!' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+    list = []
+    for file in files:
+        if file is None:
+            continue
 
-    return obj
+        print(file)
+        filename = file['filename']
+        local = outpath + '/' + filename
+        remote = file['path'] + '/' + filename
+        obj = {}
+        obj['remote'] = remote
+        try:
+            sftp.get(remote, local)
+            # obj['path'] = outpath
+            obj['filename'] = filename
+            # obj['msg'] =  '「' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '」ダウンロード完了。'
+        except IOError as err:
+            obj['msg'] = str(err)
+        finally:
+            if auth['flag'] == 'json' and os.path.isfile(local):
+                b64 = str(convert_file_to_b64_string(local))
+                if b64 is not None:
+                    obj['data'] = b64[2:(len(b64)-1)]
+
+        list.append(obj)
+
+    if sftp is not None:
+        sftp.close()
+    if transport is not None:
+        transport.close()
+        print('Download File End !!!' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
+    zipname = None
+    zippw = auth['zippw']
+    ziphome = './'
+    result = {}
+    if auth['flag'] != 'json':
+        os.chdir(outpath)
+        zipname = dir + '_zip.zip'
+        if zippw is None or len(zippw) <= 0:
+            with zipfile.ZipFile(zipname,'w', compression=zipfile.ZIP_STORED)as n_zip:
+                for file in os.listdir(ziphome):
+                    n_zip.write(os.path.join(ziphome, file))
+        else:
+            src = []
+            level = 4
+            for file in os.listdir(ziphome):
+                src.append(os.path.join(ziphome, file))
+            pyminizip.compress_multiple(src, [], zipname, zippw, level)
+
+        os.chdir('../../')
+        result['filename'] = zipname
+        result['data'] = None
+    else:
+        if len(list) == 1:
+            result['filename'] = list[0]['filename']
+            result = list[0]
+        else:
+            result['filename'] = zipname
+            result['data'] = list
+
+    result['path'] = outpath
+    result['msg'] =  '「' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '」ダウンロード完了。'
+    return result
 
 def mkdir_remote(sftp, remote_directory):
     if remote_directory == '/':
@@ -113,3 +169,7 @@ def convert_file_to_b64_string(file_path):
 def convert_b64_string_to_file(s, outfile_path):
     with open(outfile_path, "wb") as f:
         f.write(base64.b64decode(s))
+
+def delete_dir(path):
+    if path is not None and os.path.isdir(path):
+        shutil.rmtree(path)

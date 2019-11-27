@@ -23,15 +23,28 @@ def index():
 
     return render_template('index.html')
 
+# curl -v -H "Accept: application/json" -H "Content-type: application/json" -X POST -d @data.json  http://192.168.10.126:8083/putsftp
 @app.route('/putsftp', methods=[ 'POST' ])
 def putsftp():
     authorization = request.authorization
     # print(authorization)
 
+    auth = {}
+    auth['host'] = 'sc-sftp-01'
+    auth['port'] = 22
+    auth['username'] = 'huongnv'
+    auth['password'] = 'Nguyen080!'
+    # auth['password'] = './keys/id_rsa_sftp'
+    auth['flag'] = 'file'
+
     files = None
     result = []
     if request.method == 'POST':
         files = request.files.getlist('file')
+        if request.json is not None and (files is None or len(files) <= 0):
+            files = request.json.get('files')
+            auth['flag'] = 'json'
+
         # print(files)
         if files is None or len(files) <= 0:
             obj = {}
@@ -39,13 +52,6 @@ def putsftp():
             obj['data'] = 'ファイルデータは必須です。'
             result.append(obj)
             return jsonify(result), 200
-
-    auth = {}
-    auth['host'] = 'sc-sftp-01'
-    auth['port'] = 22
-    auth['username'] = 'sftp01'
-    auth['password'] = 'sftp01'
-    # auth['password'] = './keys/id_rsa_sftp'
 
     result = transport_sftp(auth, files)
     return jsonify(result), 200
@@ -58,31 +64,36 @@ def getsftp():
     auth = {}
     auth['host'] = 'sc-sftp-01'
     auth['port'] = 22
-    auth['username'] = 'sftp01'
-    auth['password'] = 'sftp01'
+    auth['username'] = 'huongnv'
+    auth['password'] = 'Nguyen080!'
+    # auth['password'] = './keys/id_rsa_sftp'
+    auth['flag'] = 'file'
 
-    file = {}
-    file['path'] = '/home/sftp01/20191125142219.644'
-    file['filename'] = 'img.png'
-    file['flag'] = 'json'
+    files = None
+    if request.json is not None:
+        auth['flag'] = request.json.get('flag')
+        auth['zippw'] = request.json.get('zippw')
+        files = request.json.get('files')
+    # file = {}
+    # file['path'] = '/home/huongnv/20191127040812.761'
+    # file['file'] = '001-home.svg'
+    # file['flag'] = 'json'
 
     result = {}
-    obj = download_sftp(auth, file)
-    filename = obj['filename']
-    local = obj['path'] + '/' + filename
-    if file['flag'] == 'file':
+    obj = download_sftp(auth, files)
+    if auth['flag'] == 'file':
+        filename = obj['filename']
+        local = obj['path'] + '/' + filename
         response = make_response()
         response.data = open(local, 'rb').read()
         response.headers['Content-Disposition'] = 'attachment; filename=' + filename
         response.mimetype = 'image/png'
+
+        delete_dir(obj['path'])
         return response
-    elif file['flag'] == 'json':
-        if os.path.isfile(local):
-            result['filename'] = filename
-            result['msg'] = obj['msg']
-            result['data'] = str(convert_file_to_b64_string(local))
-            return jsonify(result), 200
-        return jsonify(result), 200
+    elif auth['flag'] == 'json':
+        delete_dir(obj['path'])
+        return jsonify(obj), 200
     else:
         return jsonify(result), 200
 
