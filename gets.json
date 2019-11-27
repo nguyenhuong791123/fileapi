@@ -1,5 +1,6 @@
 {
     "flag": "file"
+    ,"zip": true
     ,"zippw": "1234"
     ,"files": [
         {

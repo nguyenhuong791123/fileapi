@@ -114,10 +114,12 @@ def download_sftp(auth, files):
         print('Download File End !!!' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
     zipname = None
+    zip = auth['zip']
     zippw = auth['zippw']
     ziphome = './'
     result = {}
-    if auth['flag'] != 'json':
+    print(zip)
+    if zip is not None and zip == True and auth['flag'] != 'json':
         os.chdir(outpath)
         zipname = dir + '_zip.zip'
         if zippw is None or len(zippw) <= 0:

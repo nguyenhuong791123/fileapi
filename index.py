@@ -56,7 +56,7 @@ def putsftp():
     result = transport_sftp(auth, files)
     return jsonify(result), 200
 
-@app.route('/getsftp', methods=[ 'GET' ])
+@app.route('/getsftp', methods=[ 'POST' ])
 def getsftp():
     authorization = request.authorization
     # print(authorization)
@@ -72,6 +72,7 @@ def getsftp():
     files = None
     if request.json is not None:
         auth['flag'] = request.json.get('flag')
+        auth['zip'] = request.json.get('zip')
         auth['zippw'] = request.json.get('zippw')
         files = request.json.get('files')
     # file = {}
@@ -81,13 +82,14 @@ def getsftp():
 
     result = {}
     obj = download_sftp(auth, files)
+    print(obj)
     if auth['flag'] == 'file':
         filename = obj['filename']
         local = obj['path'] + '/' + filename
         response = make_response()
         response.data = open(local, 'rb').read()
         response.headers['Content-Disposition'] = 'attachment; filename=' + filename
-        response.mimetype = 'image/png'
+        response.mimetype = 'application/zip'
 
         delete_dir(obj['path'])
         return response

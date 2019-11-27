@@ -1,5 +1,7 @@
 {
-    "flag": "json"
+    "flag": "file"
+    ,"zip": true
+    ,"zippw": "1234"
     ,"files": [
         {
             "filename": "001-home.svg"
