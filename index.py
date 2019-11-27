@@ -56,6 +56,8 @@ def putsftp():
     result = transport_sftp(auth, files)
     return jsonify(result), 200
 
+# curl -v -H "Content-type: application/json" -X GET -d @get.json  http://192.168.10.126:8083/getsftp | jq
+# curl -v -X POST -F "zip=True" -F "zippw='1234'" -F "filename=001-home.svg" -F "path=/home/huongnv/20191127040812.761"  http://192.168.10.126:8083/getsftp | jq
 @app.route('/getsftp', methods=[ 'POST' ])
 def getsftp():
     authorization = request.authorization
@@ -70,16 +72,32 @@ def getsftp():
     auth['flag'] = 'file'
 
     files = None
-    if request.json is not None:
-        auth['flag'] = request.json.get('flag')
-        auth['zip'] = request.json.get('zip')
-        auth['zippw'] = request.json.get('zippw')
-        files = request.json.get('files')
-    # file = {}
-    # file['path'] = '/home/huongnv/20191127040812.761'
-    # file['file'] = '001-home.svg'
-    # file['flag'] = 'json'
+    if request.method == 'POST':
+        if request.json is not None and (files is None or len(files) <= 0):
+            auth['flag'] = request.json.get('flag')
+            auth['zip'] = request.json.get('zip')
+            auth['zippw'] = request.json.get('zippw')
+            files = request.json.get('files')
+        else:
+            if is_none(request.form.get('flag')) == False:
+                auth['flag'] = request.form.get('flag')
+            auth['zip'] = request.form.get('zip')
+            auth['zippw'] = request.form.get('zippw')
+            if is_none(request.form.get('filename')) == False and is_none(request.form.get('path')) == False:
+                files = [{ 'filename': request.form.get('filename'), 'path': request.form.get('path') }]
+            else:
+                obj = {}
+                obj['name'] = None
+                obj['data'] = '「ファイル名又はパス」を指定してください。'
+                return jsonify(obj), 200
 
+        if files is None or len(files) <= 0:
+            obj = {}
+            obj['name'] = None
+            obj['data'] = 'ファイルデータは必須です。'
+            return jsonify(obj), 200
+
+    print(auth)
     result = {}
     obj = download_sftp(auth, files)
     print(obj)

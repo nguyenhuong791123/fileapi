@@ -88,6 +88,15 @@ def download_sftp(auth, files):
 
         print(file)
         filename = file['filename']
+        # local = None
+        # if auth['flag'] == 'json':
+        #     filename = file['filename']
+        # else:
+        #     filename = file.filename
+
+        # if filename is None or local is None:
+        #     continue
+
         local = outpath + '/' + filename
         remote = file['path'] + '/' + filename
         obj = {}
@@ -119,7 +128,7 @@ def download_sftp(auth, files):
     ziphome = './'
     result = {}
     print(zip)
-    if zip is not None and zip == True and auth['flag'] != 'json':
+    if zip is not None and zip == True:
         os.chdir(outpath)
         zipname = dir + '_zip.zip'
         if zippw is None or len(zippw) <= 0:
@@ -175,3 +184,8 @@ def convert_b64_string_to_file(s, outfile_path):
 def delete_dir(path):
     if path is not None and os.path.isdir(path):
         shutil.rmtree(path)
+
+def is_none(obj):
+    if obj is None:
+        return True
+    return False
