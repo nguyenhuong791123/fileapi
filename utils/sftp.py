@@ -128,7 +128,8 @@ def download_sftp(auth, files):
     ziphome = './'
     result = {}
     print(zip)
-    if zip is not None and zip == True:
+    if zip is not None and (zip == True or zip.lower() == 'true'):
+        print(zip)
         os.chdir(outpath)
         zipname = dir + '_zip.zip'
         if zippw is None or len(zippw) <= 0:
